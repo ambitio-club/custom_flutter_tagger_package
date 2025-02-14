@@ -164,7 +164,16 @@ class FlutterTagger extends StatefulWidget {
   State<FlutterTagger> createState() => _FlutterTaggerState();
 }
 
-class _FlutterTaggerState extends State<FlutterTagger> {
+class _FlutterTaggerState extends State<FlutterTagger>
+    with WidgetsBindingObserver {
+
+
+  @override
+  void didChangeMetrics() {
+    setState(() {});
+  }
+
+
   FlutterTaggerController get controller => widget.controller;
 
   late final _textFieldKey = GlobalKey(
@@ -818,9 +827,12 @@ class _FlutterTaggerState extends State<FlutterTagger> {
     } catch (_) {}
   }
 
+
   @override
   void initState() {
     super.initState();
+        WidgetsBinding.instance.addObserver(this);
+
     _tagTrie = controller._trie;
     controller._setDeferCallback(() => _defer = true);
     controller._setTags(_tags);
@@ -843,6 +855,7 @@ class _FlutterTaggerState extends State<FlutterTagger> {
   void dispose() {
     controller.removeListener(_tagListener);
     widget.animationController?.removeListener(_animationControllerListener);
+        WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 

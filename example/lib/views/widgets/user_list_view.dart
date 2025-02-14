@@ -6,10 +6,10 @@ import 'package:fluttertagger/fluttertagger.dart';
 
 class UserListView extends StatelessWidget {
   const UserListView({
-    Key? key,
+    super.key,
     required this.tagController,
     required this.animation,
-  }) : super(key: key);
+  });
 
   final FlutterTaggerController tagController;
   final Animation<Offset> animation;
@@ -88,6 +88,13 @@ class UserListView extends StatelessWidget {
                                     id: user.id,
                                     name: user.userName,
                                   );
+                                  debugPrint(
+                                    'USER LIST FILE -------Tagged User:------- ${user.userName} with ID: ${user.id}',
+                                  );
+                                  debugPrint(
+                                      "USER LIST FILE Formatted Text after Tagging: ${tagController.formattedText}");
+                                  debugPrint(
+                                      "USER LIST FILE Stored Tags: ${tagController.tags}");
                                 },
                               );
                             },

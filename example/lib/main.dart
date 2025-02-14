@@ -12,7 +12,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
 }
 
 class HomeView extends StatefulWidget {
-  const HomeView({Key? key}) : super(key: key);
+  const HomeView({super.key});
 
   @override
   State<HomeView> createState() => _HomeViewState();
@@ -43,15 +43,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   double overlayHeight = 300;
 
   late final homeViewModel = HomeViewModel();
-  late final _controller = FlutterTaggerController(
-    //Initial text value with tag is formatted internally
-    //following the construction of FlutterTaggerController.
-    //After this controller is constructed, if you
-    //wish to update its text value with raw tag string,
-    //call (_controller.formatTags) after that.
-    text:
-        "Hey @11a27531b866ce0016f9e582#brad#. It's time to #93f27531f294jp0016f9k013#Flutter#!",
-  );
+  late final _controller = FlutterTaggerController();
   late final _focusNode = FocusNode();
 
   @override
@@ -108,7 +100,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             "#": TextStyle(color: Colors.blueAccent),
           },
           tagTextFormatter: (id, tag, triggerCharacter) {
-            return "$triggerCharacter$id#$tag#";
+            final formatted = "$triggerCharacter$id#$tag#";
+            debugPrint("MAIN FILE Formatted Tag: $formatted"); // Print each tag format
+            return formatted;
           },
           overlayHeight: overlayHeight,
           overlay: SearchResultOverlay(
@@ -124,6 +118,21 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
               onSend: () {
                 FocusScope.of(context).unfocus();
                 homeViewModel.addPost(_controller.formattedText);
+                debugPrint(_controller.tags.toString());
+
+                debugPrint("Before Sending Message:");
+                debugPrint("Formatted Text: ${_controller.formattedText}");
+                debugPrint(
+                    "Extracted Tagged IDs: ${RegExp(r'@(\w+)#').allMatches(_controller.formattedText).map((match) => match.group(1)).toSet().toList()}");
+
+
+                final taggedIds = RegExp(r'@(\w+)#')
+                    .allMatches(_controller.formattedText)
+                    .map((match) => match.group(1))
+                    .toSet()
+                    .toList();
+                debugPrint('-------Tagged IDs:------- $taggedIds');
+
                 _controller.clear();
               },
             );

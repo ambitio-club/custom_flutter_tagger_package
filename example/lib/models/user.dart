@@ -19,6 +19,14 @@ class User {
             "https://github.githubassets.com/images/modules/profile/achievements/quickdraw-default.png",
       );
 
+  factory User.luckyy() => User(
+        id: "63a27531b866ce0017f9e582",
+        fullName: "Lucky Ebere",
+        userName: "crazelu",
+        avatar:
+            "https://github.githubassets.com/images/modules/profile/achievements/quickdraw-default.png",
+      );
+
   factory User.brad() => User(
         id: "11a27531b866ce0016f9e582",
         fullName: "Brad Francis",
@@ -52,7 +60,7 @@ class User {
   factory User.aurora() => User(
         id: "08a98331b866ce0017k9h082",
         fullName: "Aurora Peters",
-        userName: "aurora",
+        userName: "aur ora",
         avatar:
             "https://github.githubassets.com/images/modules/profile/achievements/arctic-code-vault-contributor-default.png",
       );
@@ -67,6 +75,7 @@ class User {
 
   static List<User> allUsers = [
     User.lucky(),
+    User.luckyy(),
     User.anon(),
     User.billy(),
     User.sharky(),
