@@ -372,62 +372,60 @@ class _FlutterTaggerState extends State<FlutterTagger>
     id = id.trim();
 
     final text = controller.text;
-    late final position = controller.selection.base.offset - 1;
-    int index = 0;
+    final position = controller.selection.base.offset - 1;
+    int index;
     int selectionOffset = 0;
 
+    // find where the trigger char occurred
     if (position != text.length - 1) {
       index = text.substring(0, position + 1).lastIndexOf(_currentTriggerChar);
     } else {
       index = text.lastIndexOf(_currentTriggerChar);
     }
+    if (index < 0) return;
 
-    if (index >= 0) {
-      _defer = true;
+    _defer = true;
 
-      String newText;
-
-      if (index - 1 > 0 && text[index - 1] != " ") {
-        newText = text.replaceRange(index, position + 1, " $tag");
-        index++;
-      } else {
-        newText = text.replaceRange(index, position + 1, tag);
-      }
-
-      if (text.length - 1 == position) {
-        newText += " ";
-        selectionOffset++;
-      }
-
-      final oldCachedText = _lastCachedText;
-      _lastCachedText = newText;
-      controller.text = newText;
-      _defer = true;
-
-      int offset = index + tag.length;
-
-      final taggedText = TaggedText(
-        startIndex: offset - tag.length,
-        endIndex: offset,
-        text: tag,
-      );
-      _tags[taggedText] = id;
-      _tagTrie.insert(taggedText);
-
-      controller.selection = TextSelection.fromPosition(
-        TextPosition(
-          offset: offset + selectionOffset,
-        ),
-      );
-
-      _recomputeTags(
-        oldCachedText,
-        newText,
-        taggedText.startIndex + 1,
-      );
-
-      _onFormattedTextChanged();
+    // build the new text, inserting a space if needed
+    String newText;
+    if (index - 1 > 0 && text[index - 1] != " ") {
+      newText = text.replaceRange(index, position + 1, " $tag");
+      index++;
+    } else {
+      newText = text.replaceRange(index, position + 1, tag);
     }
+    if (position == text.length - 1) {
+      newText += " ";
+      selectionOffset++;
+    }
+
+    final oldCachedText = _lastCachedText;
+    _lastCachedText = newText;
+    controller.text = newText;
+    _defer = true;
+
+    final rawTagEnd = index + tag.length;
+    final rawCursor = rawTagEnd + selectionOffset;
+    final safeCursor = rawCursor.clamp(0, controller.text.length).toInt();
+
+    final taggedText = TaggedText(
+      startIndex: index,
+      endIndex: rawTagEnd,
+      text: tag,
+    );
+    _tags[taggedText] = id;
+    _tagTrie.insert(taggedText);
+
+    controller.selection = TextSelection.fromPosition(
+      TextPosition(offset: safeCursor),
+    );
+
+    _recomputeTags(
+      oldCachedText,
+      newText,
+      taggedText.startIndex + 1,
+    );
+    _onFormattedTextChanged();
   }
 
   /// Selects a tag from [_tags] when keyboard action attempts to remove it
@@ -485,22 +483,25 @@ class _FlutterTaggerState extends State<FlutterTagger>
     String text = controller.text;
     if (!text.contains(_triggerCharactersPattern)) return false;
 
-    final length = controller.selection.base.offset;
+    final rawCursor = controller.selection.baseOffset;
+    final length = rawCursor.clamp(0, text.length).toInt();
 
     if (tag.startIndex > length || tag.endIndex - 1 > length) {
       return false;
     }
+
     _defer = true;
     controller.text = _lastCachedText;
     text = _lastCachedText;
     _defer = true;
+
     controller.selection = TextSelection.fromPosition(
       TextPosition(offset: length),
     );
 
-    late String temp = "";
-
+    String temp = "";
     for (int i = length; i >= 0; i--) {
+      // if we hit the trigger char immediately, it's not a tag removal
       if (i == length && triggerCharacters.contains(text[i])) return false;
 
       temp = text[i] + temp;
@@ -508,6 +509,7 @@ class _FlutterTaggerState extends State<FlutterTagger>
           temp.length > 1 &&
           temp == tag.text &&
           i == tag.startIndex) {
+        // we found the exact tag—select it
         _selectedTag = TaggedText(
           startIndex: i,
           endIndex: length + 1,
@@ -517,9 +519,15 @@ class _FlutterTaggerState extends State<FlutterTagger>
         _startOffset = i;
         _endOffset = length + 1;
         _defer = true;
+
+        // clamp both ends before assigning
+        final textLen = controller.text.length;
+        final safeBase = _startOffset!.clamp(0, textLen).toInt();
+        final safeExtent = _endOffset!.clamp(0, textLen).toInt();
+
         controller.selection = TextSelection(
-          baseOffset: _startOffset!,
-          extentOffset: _endOffset!,
+          baseOffset: safeBase,
+          extentOffset: safeExtent,
         );
         return true;
       }
@@ -618,7 +626,8 @@ class _FlutterTaggerState extends State<FlutterTagger>
       final completeTag = text.safeSubstring(triggerIndex + 1, i + 1);
 
       if ((i == length && triggerCharacters.contains(text[i])) ||
-          !triggerCharacters.contains(text[i])               &&!_searchRegexPattern.hasMatch(text[i]) &&
+          !triggerCharacters.contains(text[i]) &&
+              !_searchRegexPattern.hasMatch(text[i]) &&
               (completeTag == null ||
                   !_searchRegexPattern.hasMatch(completeTag))) {
         return false;
@@ -710,7 +719,7 @@ class _FlutterTaggerState extends State<FlutterTagger>
     final oldCachedText = _lastCachedText;
 
     if (_shouldSearch && position >= 0) {
-     final triggerIndex = text.lastIndexOf(_triggerCharactersPattern);
+      final triggerIndex = text.lastIndexOf(_triggerCharactersPattern);
       final completeTag = text.safeSubstring(triggerIndex + 1, position + 1);
 
       if (!_searchRegexPattern.hasMatch(text[position]) &&
@@ -1351,7 +1360,7 @@ extension _RegExpExtension on RegExp {
 extension _StringExtension on String {
   List<String> splitWithDelim(RegExp pattern) =>
       pattern.allMatchesWithSep(this);
-      String? safeSubstring(int start, int end) {
+  String? safeSubstring(int start, int end) {
     try {
       return substring(start, end);
     } catch (_) {
